@@ -1,0 +1,250 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><link rel="shortcut icon" href=/favicon.ico type=image/x-icon><meta name=viewport content="width=device-width,initial-scale=1"><title>cel-go 初探 - zznQ</title><meta name=author content="zznq"><meta property="og:title" content="cel-go 初探"><meta property="og:description" content="之前看到 Xray - 如何编写expression表达式 提到这个库 https://github.com/google/cel-spec
+正好工作方面也遇到这个需求了，就来简单的研究下，先看下相关资料：
+ cel-spec 介绍 cel-go github cel-go 入门文档   cel 是建立 protocol 之上的。
+在 demo 项目下创建 fprint 包；并在其目录下创建 fprint.proto 文件
+syntax = &#34;proto3&#34;;package fprint; // https://developers.google.com/protocol-buffers/docs/proto3#packages option go_package = &#34;fprint/bp&#34;; // golang package 包名 message Response { string url = 1; int32 status = 2 ; map<string, string> headers = 3; string content_type = 4; string title = 5; bytes body = 6; string md5 = 7;}使用 $ protoc --go_out=."><meta property="og:type" content="article"><meta property="og:url" content="https://zznq.imipy.com/posts/cel-go-demo/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2021-05-12T00:00:00+00:00"><meta property="article:modified_time" content="2021-05-12T00:00:00+00:00"><meta name=twitter:card content="summary"><meta name=twitter:title content="cel-go 初探"><meta name=twitter:description content="之前看到 Xray - 如何编写expression表达式 提到这个库 https://github.com/google/cel-spec
+正好工作方面也遇到这个需求了，就来简单的研究下，先看下相关资料：
+ cel-spec 介绍 cel-go github cel-go 入门文档   cel 是建立 protocol 之上的。
+在 demo 项目下创建 fprint 包；并在其目录下创建 fprint.proto 文件
+syntax = &#34;proto3&#34;;package fprint; // https://developers.google.com/protocol-buffers/docs/proto3#packages option go_package = &#34;fprint/bp&#34;; // golang package 包名 message Response { string url = 1; int32 status = 2 ; map<string, string> headers = 3; string content_type = 4; string title = 5; bytes body = 6; string md5 = 7;}使用 $ protoc --go_out=."><link rel=stylesheet href=/style.min.5297c96c59a52afaa5bcda4a6cedf3813081f64025c209b25b2ee6d0c8f74d462b625ad3404a92a14d7a51b4ec0a420337ae70f426fa4bce2d5f7459a3ca7274.css integrity="sha512-UpfJbFmlKvqlvNpKbO3zgTCB9kAlwgmyWy7m0Mj3TUYrYlrTQEqSoU16UbTsCkIDN65w9Cb6S84tX3RZo8pydA=="><script>localStorage.theme==="dark"||!("theme"in localStorage)&&window.matchMedia("(prefers-color-scheme: dark)").matches?document.documentElement.setAttribute("data-theme","dark"):document.documentElement.setAttribute("data-theme","light")</script><script defer src=/js/header.7a2a109ec3782c57bad0332b662f8a5f41765505936b69868eb8bd5241de9daf23c388e82ca1831f6d09935013dcb9f71bfa7face3975880c1076028b7b0a6e1.js integrity="sha512-eioQnsN4LFe60DMrZi+KX0F2VQWTa2mGjri9UkHena8jw4joLKGDH20Jk1AT3Ln3G/p/rOOXWIDBB2Aot7Cm4Q=="></script>
+<script defer src=/js/builtin-copy.56e07a74dd440b068ab36af35542ed8960865686c19fb809f38436877ac081570612cc8a913650b0c0e3073a336680c5df960e73bf7b1de83dc6aa996f2db858.js integrity="sha512-VuB6dN1ECwaKs2rzVULtiWCGVobBn7gJ84Q2h3rAgVcGEsyKkTZQsMDjBzozZoDF35YOc797Heg9xqqZby24WA=="></script>
+<script defer src=/js/search-zh-cn.677e05c714f837051483647d736c45051126c22a2696ca5f981b59da962d48962f3ea71150f559ba84884fd1aadf1c7aadce55bb31a3e5b75c0f173b763c109a.js integrity="sha512-Z34FxxT4NwUUg2R9c2xFBREmwiomlspfmBtZ2pYtSJYvPqcRUPVZuoSIT9Gq3xx6rc5VuzGj5bdcDxc7djwQmg=="></script></head><body><main><header><div class=brand><div id=sidebar_btn><svg id="menu_icon" width="26" height="26" viewBox="0 0 24 24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feather feather-menu"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></svg></div><div><a href=/>zznQ🎈</a></div></div><div class=toolbox><div id=theme_tool><svg id="dark_mode_btn" class="hidden toolbox-btn" width="18" height="18" viewBox="0 0 24 24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feather feather-sun"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></svg><svg id="light_mode_btn" class="hidden toolbox-btn" width="18" height="18" viewBox="0 0 24 24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-moon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></svg></div><div id=search_tool><svg id="search_btn" class="toolbox-btn" width="18" height="18" viewBox="0 0 24 24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></svg><div id=search_menu_wrapper class=hidden><div id=search_menu><div id=search_menu_toolbar><div id=search_menu_input_wrapper><input id=search_menu_input type=text placeholder="Search Posts"></div><div id=search_menu_close_btn><svg width="18" height="18" viewBox="0 0 24 24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></svg></div></div><div id=search_menu_results></div></div></div></div></div></header><nav id=navbar class=pure-menu><ul class=pure-menu-list><li class="navbar-item pure-menu-item insection"><a href=/posts/ class=pure-menu-link>文章</a></li><li class="navbar-item pure-menu-item"><a href=/categories/ class=pure-menu-link>分类</a></li><li class="navbar-item pure-menu-item"><a href=/tags/ class=pure-menu-link>标签</a></li></ul></nav><div id=sidebar_canvas_overlay class=hidden></div><div id=sidebar class=close><ul><li><a href=/posts/>文章</a></li><li><a href=/categories/>分类</a></li><li><a href=/tags/>标签</a></li></ul></div><div id=content class=content-margin><div class=content-margin><article class=line-numbers><p>之前看到 <a href=https://xray.cool/>Xray</a> - <a href="https://docs.xray.cool/#/guide/poc?id=%e5%a6%82%e4%bd%95%e7%bc%96%e5%86%99expression%e8%a1%a8%e8%be%be%e5%bc%8f">如何编写expression表达式</a> 提到这个库 <a href=https://github.com/google/cel-spec>https://github.com/google/cel-spec</a></p><p>正好工作方面也遇到这个需求了，就来简单的研究下，先看下相关资料：</p><ul><li><a href=https://github.com/google/cel-spec/blob/master/doc/intro.md>cel-spec 介绍</a></li><li><a href=https://github.com/google/cel-go>cel-go github</a></li><li><a href=https://codelabs.developers.google.com/codelabs/cel-go/index.html>cel-go 入门文档</a></li></ul><hr><p>cel 是建立 <a href=https://developers.google.com/protocol-buffers/docs/overview>protocol</a> 之上的。</p><p>在 demo 项目下创建 fprint 包；并在其目录下创建 <code>fprint.proto</code> 文件</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-proto data-lang=proto><span style=display:flex><span>syntax <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;proto3&#34;</span>;<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#f92672>package</span> fprint; <span style=color:#75715e>// https://developers.google.com/protocol-buffers/docs/proto3#packages
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>option</span> go_package <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;fprint/bp&#34;</span>; <span style=color:#75715e>// golang package 包名
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span><span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span><span style=color:#66d9ef>message</span> <span style=color:#a6e22e>Response</span> {<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>  <span style=color:#66d9ef>string</span> url <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>;<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>  <span style=color:#66d9ef>int32</span> status <span style=color:#f92672>=</span> <span style=color:#ae81ff>2</span> ;<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>  map&lt;<span style=color:#66d9ef>string</span>, <span style=color:#66d9ef>string</span>&gt; headers <span style=color:#f92672>=</span> <span style=color:#ae81ff>3</span>;<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>  <span style=color:#66d9ef>string</span> content_type <span style=color:#f92672>=</span> <span style=color:#ae81ff>4</span>;<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>  <span style=color:#66d9ef>string</span> title <span style=color:#f92672>=</span> <span style=color:#ae81ff>5</span>;<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>  <span style=color:#66d9ef>bytes</span> body <span style=color:#f92672>=</span> <span style=color:#ae81ff>6</span>;<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>  <span style=color:#66d9ef>string</span> md5 <span style=color:#f92672>=</span> <span style=color:#ae81ff>7</span>;<span style=color:#960050;background-color:#1e0010>
+</span></span></span><span style=display:flex><span><span style=color:#960050;background-color:#1e0010></span>}<span style=color:#960050;background-color:#1e0010>
+</span></span></span></code></pre></div><p>使用 <code>$ protoc --go_out=./ fprint/fprint.proto</code> 生成 go 代码</p><p>创建 cel.go 文件，添加下自己定义函数等，目录结构如下：</p><pre tabindex=0><code>demo
+├── fprint
+│   ├── bp
+│   │   └── fprint.pb.go
+│   ├── cel.go
+│   ├── cel_test.go
+│   └── fprint.proto
+</code></pre><p>cel.go:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-golang data-lang=golang><span style=display:flex><span><span style=color:#f92672>package</span> <span style=color:#a6e22e>fprint</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>import</span> (
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;bytes&#34;</span>
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;log&#34;</span>
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;regexp&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;github.com/google/cel-go/cel&#34;</span>
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;github.com/google/cel-go/checker/decls&#34;</span>
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;github.com/google/cel-go/common/types&#34;</span>
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;github.com/google/cel-go/common/types/ref&#34;</span>
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;github.com/google/cel-go/interpreter/functions&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;demo/fprint/bp&#34;</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>exprpb</span> <span style=color:#e6db74>&#34;google.golang.org/genproto/googleapis/api/expr/v1alpha1&#34;</span>
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewEnv</span>(<span style=color:#a6e22e>f</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>fprintLib</span>) (<span style=color:#f92672>*</span><span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>Env</span>, <span style=color:#66d9ef>error</span>) {
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>NewEnv</span>(<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>Lib</span>(<span style=color:#a6e22e>f</span>))
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>Evaluate</span>(<span style=color:#a6e22e>env</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>Env</span>, <span style=color:#a6e22e>expression</span> <span style=color:#66d9ef>string</span>, <span style=color:#a6e22e>params</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>interface</span>{}) (<span style=color:#a6e22e>ref</span>.<span style=color:#a6e22e>Val</span>, <span style=color:#66d9ef>error</span>) {
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>ast</span>, <span style=color:#a6e22e>iss</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>env</span>.<span style=color:#a6e22e>Compile</span>(<span style=color:#a6e22e>expression</span>)
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>iss</span>.<span style=color:#a6e22e>Err</span>() <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;compile error&#34;</span>)
+</span></span><span style=display:flex><span>		<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>iss</span>.<span style=color:#a6e22e>Err</span>()
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>prg</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>env</span>.<span style=color:#a6e22e>Program</span>(<span style=color:#a6e22e>ast</span>)
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Program creation error&#34;</span>)
+</span></span><span style=display:flex><span>		<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>out</span>, <span style=color:#a6e22e>_</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>prg</span>.<span style=color:#a6e22e>Eval</span>(<span style=color:#a6e22e>params</span>)
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>log</span>.<span style=color:#a6e22e>Println</span>(<span style=color:#e6db74>&#34;Evaluation error&#34;</span>)
+</span></span><span style=display:flex><span>		<span style=color:#66d9ef>return</span> <span style=color:#66d9ef>nil</span>, <span style=color:#a6e22e>err</span>
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>out</span>, <span style=color:#66d9ef>nil</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>type</span> <span style=color:#a6e22e>fprintLib</span> <span style=color:#66d9ef>struct</span> {
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>envOptions</span>     []<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>EnvOption</span>
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>programOptions</span> []<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>ProgramOption</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>NewEnvOption</span>() <span style=color:#f92672>*</span><span style=color:#a6e22e>fprintLib</span> {
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>f</span> <span style=color:#f92672>:=</span> <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>fprintLib</span>{}
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>envOptions</span> = []<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>EnvOption</span>{
+</span></span><span style=display:flex><span>        <span style=color:#75715e>// 注册 response 类型
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>		<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>Container</span>(<span style=color:#e6db74>&#34;fprint.Response&#34;</span>),
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>Types</span>(
+</span></span><span style=display:flex><span>			<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>bp</span>.<span style=color:#a6e22e>Response</span>{},
+</span></span><span style=display:flex><span>		),
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>Declarations</span>(
+</span></span><span style=display:flex><span>			<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>NewIdent</span>(<span style=color:#e6db74>&#34;response&#34;</span>, <span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>NewObjectType</span>(<span style=color:#e6db74>&#34;fprint.Response&#34;</span>), <span style=color:#66d9ef>nil</span>),
+</span></span><span style=display:flex><span>		),
+</span></span><span style=display:flex><span>        <span style=color:#75715e>// 定义方法、函数等
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>		<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>Declarations</span>(
+</span></span><span style=display:flex><span>			<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>NewFunction</span>(<span style=color:#e6db74>&#34;bcontains&#34;</span>,
+</span></span><span style=display:flex><span>				<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>NewInstanceOverload</span>(<span style=color:#e6db74>&#34;bytes_bcontains_bytes&#34;</span>,
+</span></span><span style=display:flex><span>					[]<span style=color:#f92672>*</span><span style=color:#a6e22e>exprpb</span>.<span style=color:#a6e22e>Type</span>{<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>Bytes</span>, <span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>Bytes</span>},
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>Bool</span>)),
+</span></span><span style=display:flex><span>			<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>NewFunction</span>(<span style=color:#e6db74>&#34;regexp&#34;</span>,
+</span></span><span style=display:flex><span>				<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>NewOverload</span>(<span style=color:#e6db74>&#34;regexp_string_string&#34;</span>,
+</span></span><span style=display:flex><span>					[]<span style=color:#f92672>*</span><span style=color:#a6e22e>exprpb</span>.<span style=color:#a6e22e>Type</span>{<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>String</span>, <span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>String</span>},
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>Bool</span>)),
+</span></span><span style=display:flex><span>			<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>NewFunction</span>(<span style=color:#e6db74>&#34;version&#34;</span>,
+</span></span><span style=display:flex><span>				<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>NewOverload</span>(<span style=color:#e6db74>&#34;version_string_string_int&#34;</span>,
+</span></span><span style=display:flex><span>					[]<span style=color:#f92672>*</span><span style=color:#a6e22e>exprpb</span>.<span style=color:#a6e22e>Type</span>{<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>String</span>, <span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>String</span>, <span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>Int</span>},
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>decls</span>.<span style=color:#a6e22e>String</span>)),
+</span></span><span style=display:flex><span>		),
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>programOptions</span> = []<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>ProgramOption</span>{
+</span></span><span style=display:flex><span>        <span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>Functions</span>(
+</span></span><span style=display:flex><span>            <span style=color:#75715e>// bytes_bcontains_bytes 的实现
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>			<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>functions</span>.<span style=color:#a6e22e>Overload</span>{
+</span></span><span style=display:flex><span>				<span style=color:#a6e22e>Operator</span>: <span style=color:#e6db74>&#34;bytes_bcontains_bytes&#34;</span>,
+</span></span><span style=display:flex><span>				<span style=color:#a6e22e>Binary</span>: <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>lhs</span> <span style=color:#a6e22e>ref</span>.<span style=color:#a6e22e>Val</span>, <span style=color:#a6e22e>rhs</span> <span style=color:#a6e22e>ref</span>.<span style=color:#a6e22e>Val</span>) <span style=color:#a6e22e>ref</span>.<span style=color:#a6e22e>Val</span> {
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>v1</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>lhs</span>.(<span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>Bytes</span>)
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>ValOrErr</span>(<span style=color:#a6e22e>lhs</span>, <span style=color:#e6db74>&#34;unexpected type &#39;%v&#39; passed to bcontains&#34;</span>, <span style=color:#a6e22e>lhs</span>.<span style=color:#a6e22e>Type</span>())
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>v2</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>rhs</span>.(<span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>Bytes</span>)
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>ValOrErr</span>(<span style=color:#a6e22e>rhs</span>, <span style=color:#e6db74>&#34;unexpected type &#39;%v&#39; passed to bcontains&#34;</span>, <span style=color:#a6e22e>rhs</span>.<span style=color:#a6e22e>Type</span>())
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>Bool</span>(<span style=color:#a6e22e>bytes</span>.<span style=color:#a6e22e>Contains</span>(<span style=color:#a6e22e>v1</span>, <span style=color:#a6e22e>v2</span>))
+</span></span><span style=display:flex><span>				},
+</span></span><span style=display:flex><span>			},
+</span></span><span style=display:flex><span>            <span style=color:#75715e>// regexp_string_string 的实现
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>			<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>functions</span>.<span style=color:#a6e22e>Overload</span>{
+</span></span><span style=display:flex><span>				<span style=color:#a6e22e>Operator</span>: <span style=color:#e6db74>&#34;regexp_string_string&#34;</span>,
+</span></span><span style=display:flex><span>				<span style=color:#a6e22e>Binary</span>: <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>arg1</span>, <span style=color:#a6e22e>arg2</span> <span style=color:#a6e22e>ref</span>.<span style=color:#a6e22e>Val</span>) <span style=color:#a6e22e>ref</span>.<span style=color:#a6e22e>Val</span> {
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>reg</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>arg1</span>.(<span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>String</span>)
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>ValOrErr</span>(<span style=color:#a6e22e>arg1</span>, <span style=color:#e6db74>&#34;unexpected type &#39;%v&#39; passed to regexp&#34;</span>, <span style=color:#a6e22e>arg1</span>.<span style=color:#a6e22e>Type</span>())
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>val</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>arg2</span>.(<span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>String</span>)
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>ValOrErr</span>(<span style=color:#a6e22e>arg2</span>, <span style=color:#e6db74>&#34;unexpected type &#39;%v&#39; passed to regexp&#34;</span>, <span style=color:#a6e22e>arg2</span>.<span style=color:#a6e22e>Type</span>())
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>matched</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>regexp</span>.<span style=color:#a6e22e>MatchString</span>(string(<span style=color:#a6e22e>reg</span>), string(<span style=color:#a6e22e>val</span>))
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>ValOrErr</span>(<span style=color:#a6e22e>arg2</span>, <span style=color:#e6db74>&#34;Wrong regular syntax &#39;%v&#39; passed to version&#34;</span>, <span style=color:#a6e22e>arg2</span>.<span style=color:#a6e22e>Type</span>())
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>Bool</span>(<span style=color:#a6e22e>matched</span>)
+</span></span><span style=display:flex><span>				},
+</span></span><span style=display:flex><span>			},
+</span></span><span style=display:flex><span>            <span style=color:#75715e>// version_string_string_int 的实现
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>			<span style=color:#f92672>&amp;</span><span style=color:#a6e22e>functions</span>.<span style=color:#a6e22e>Overload</span>{
+</span></span><span style=display:flex><span>				<span style=color:#a6e22e>Operator</span>: <span style=color:#e6db74>&#34;version_string_string_int&#34;</span>,
+</span></span><span style=display:flex><span>				<span style=color:#a6e22e>Function</span>: <span style=color:#66d9ef>func</span>(<span style=color:#a6e22e>values</span> <span style=color:#f92672>...</span><span style=color:#a6e22e>ref</span>.<span style=color:#a6e22e>Val</span>) <span style=color:#a6e22e>ref</span>.<span style=color:#a6e22e>Val</span> {
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> len(<span style=color:#a6e22e>values</span>) <span style=color:#f92672>!=</span> <span style=color:#ae81ff>3</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>NewErr</span>(<span style=color:#e6db74>&#34;too many arguments to &#39;substr&#39;&#34;</span>)
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>offset</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>2</span>].(<span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>Int</span>)
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>ValOrErr</span>(<span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>2</span>], <span style=color:#e6db74>&#34;unexpected type &#39;%v&#39; passed to version&#34;</span>, <span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>2</span>].<span style=color:#a6e22e>Type</span>())
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>offset</span> &lt; <span style=color:#ae81ff>0</span> {
+</span></span><span style=display:flex><span>						<span style=color:#a6e22e>offset</span> = <span style=color:#ae81ff>0</span>
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>reg</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>0</span>].(<span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>String</span>)
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>ValOrErr</span>(<span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>0</span>], <span style=color:#e6db74>&#34;unexpected type &#39;%v&#39; passed to version&#34;</span>, <span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>0</span>].<span style=color:#a6e22e>Type</span>())
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>val</span>, <span style=color:#a6e22e>ok</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>1</span>].(<span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>String</span>)
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> !<span style=color:#a6e22e>ok</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>ValOrErr</span>(<span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>1</span>], <span style=color:#e6db74>&#34;unexpected type &#39;%v&#39; passed to version&#34;</span>, <span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>1</span>].<span style=color:#a6e22e>Type</span>())
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>regx</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>regexp</span>.<span style=color:#a6e22e>Compile</span>(string(<span style=color:#a6e22e>reg</span>))
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>ValOrErr</span>(<span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>0</span>], <span style=color:#e6db74>&#34;Wrong regular syntax &#39;%v&#39; passed to version&#34;</span>, <span style=color:#a6e22e>values</span>[<span style=color:#ae81ff>0</span>].<span style=color:#a6e22e>Type</span>())
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>vals</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>regx</span>.<span style=color:#a6e22e>FindStringSubmatch</span>(string(<span style=color:#a6e22e>val</span>))
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> len(<span style=color:#a6e22e>vals</span>) <span style=color:#f92672>&lt;=</span> <span style=color:#ae81ff>0</span> {
+</span></span><span style=display:flex><span>						<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>String</span>(<span style=color:#e6db74>&#34;&#34;</span>)
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#a6e22e>offset</span> <span style=color:#f92672>+=</span> <span style=color:#ae81ff>1</span>
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>if</span> int(<span style=color:#a6e22e>offset</span>) &gt; len(<span style=color:#a6e22e>vals</span>) {
+</span></span><span style=display:flex><span>						<span style=color:#a6e22e>offset</span> = <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>Int</span>(len(<span style=color:#a6e22e>vals</span>) <span style=color:#f92672>-</span> <span style=color:#ae81ff>1</span>)
+</span></span><span style=display:flex><span>					}
+</span></span><span style=display:flex><span>					<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>types</span>.<span style=color:#a6e22e>String</span>(<span style=color:#a6e22e>vals</span>[<span style=color:#a6e22e>offset</span>])
+</span></span><span style=display:flex><span>				},
+</span></span><span style=display:flex><span>			},
+</span></span><span style=display:flex><span>		),
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>f</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// EnvOptions returns options for the standard CEL function declarations and macros.
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>f</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>fprintLib</span>) <span style=color:#a6e22e>CompileOptions</span>() []<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>EnvOption</span> {
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>envOptions</span>
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// ProgramOptions returns function implementations for the standard CEL functions.
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span><span style=color:#66d9ef>func</span> (<span style=color:#a6e22e>f</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>fprintLib</span>) <span style=color:#a6e22e>ProgramOptions</span>() []<span style=color:#a6e22e>cel</span>.<span style=color:#a6e22e>ProgramOption</span> {
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>return</span> <span style=color:#a6e22e>f</span>.<span style=color:#a6e22e>programOptions</span>
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>写个单元测试运行下，cel_test.go ：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-golang data-lang=golang><span style=display:flex><span><span style=color:#f92672>package</span> <span style=color:#a6e22e>fprint</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#f92672>import</span> (
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;demo/fprint/bp&#34;</span>
+</span></span><span style=display:flex><span>	<span style=color:#e6db74>&#34;testing&#34;</span>
+</span></span><span style=display:flex><span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>func</span> <span style=color:#a6e22e>TestFprint</span>(<span style=color:#a6e22e>t</span> <span style=color:#f92672>*</span><span style=color:#a6e22e>testing</span>.<span style=color:#a6e22e>T</span>) {
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>flib</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewEnvOption</span>()
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>env</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>NewEnv</span>(<span style=color:#a6e22e>flib</span>)
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Fatal</span>(<span style=color:#a6e22e>err</span>)
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>params</span> <span style=color:#f92672>:=</span> <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>interface</span>{}{}
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>params</span>[<span style=color:#e6db74>&#34;response&#34;</span>] = <span style=color:#f92672>&amp;</span><span style=color:#a6e22e>bp</span>.<span style=color:#a6e22e>Response</span>{
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>Url</span>:    <span style=color:#e6db74>&#34;http://www.baidu.com&#34;</span>,
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>Status</span>: <span style=color:#ae81ff>404</span>,
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>Headers</span>: <span style=color:#66d9ef>map</span>[<span style=color:#66d9ef>string</span>]<span style=color:#66d9ef>string</span>{
+</span></span><span style=display:flex><span>			<span style=color:#e6db74>&#34;server&#34;</span>: <span style=color:#e6db74>&#34;nginx&#34;</span>,
+</span></span><span style=display:flex><span>		},
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>ContentType</span>: <span style=color:#e6db74>&#34;application/json&#34;</span>,
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>Title</span>:       <span style=color:#e6db74>&#34;this is a titleTest Bootstrap v0.1.1 test&#34;</span>,
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>Body</span>:        []byte(<span style=color:#e6db74>&#34;http.body&#34;</span>),
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>out</span>, <span style=color:#a6e22e>err</span> <span style=color:#f92672>:=</span> <span style=color:#a6e22e>Evaluate</span>(<span style=color:#a6e22e>env</span>, <span style=color:#e6db74>`response.status == 200`</span>, <span style=color:#a6e22e>params</span>)
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Fatal</span>(<span style=color:#a6e22e>err</span>)
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Log</span>(<span style=color:#e6db74>&#34;response.status == 200&#34;</span>, <span style=color:#a6e22e>out</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>out</span>, <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>Evaluate</span>(<span style=color:#a6e22e>env</span>, <span style=color:#e6db74>`response.headers[&#34;server&#34;] == &#34;nginx&#34;`</span>, <span style=color:#a6e22e>params</span>)
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Fatal</span>(<span style=color:#a6e22e>err</span>)
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Log</span>(<span style=color:#e6db74>`response.headers[&#34;server&#34;] == &#34;nginx&#34;`</span>, <span style=color:#a6e22e>out</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>out</span>, <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>Evaluate</span>(<span style=color:#a6e22e>env</span>, <span style=color:#e6db74>`response.body.bcontains(b&#34;body&#34;)`</span>, <span style=color:#a6e22e>params</span>)
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Fatal</span>(<span style=color:#a6e22e>err</span>)
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Log</span>(<span style=color:#e6db74>`response.body.bcontains(b&#34;body&#34;)`</span>, <span style=color:#a6e22e>out</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>out</span>, <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>Evaluate</span>(<span style=color:#a6e22e>env</span>, <span style=color:#e6db74>`regexp(&#34;(?im)bootstrap ([vV])?([0-9\\.]+)&#34;, response.title)`</span>, <span style=color:#a6e22e>params</span>)
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Fatal</span>(<span style=color:#a6e22e>err</span>)
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Log</span>(<span style=color:#e6db74>`regexp(&#34;(?im)bootstrap ([vV])?([0-9\\.]+)&#34;, response.title)`</span>, <span style=color:#a6e22e>out</span>)
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>out</span>, <span style=color:#a6e22e>err</span> = <span style=color:#a6e22e>Evaluate</span>(<span style=color:#a6e22e>env</span>, <span style=color:#e6db74>`version(&#34;(?im)bootstrap ([vV])?([0-9\\.]+)&#34;, response.title, 1)`</span>, <span style=color:#a6e22e>params</span>)
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>if</span> <span style=color:#a6e22e>err</span> <span style=color:#f92672>!=</span> <span style=color:#66d9ef>nil</span> {
+</span></span><span style=display:flex><span>		<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Fatal</span>(<span style=color:#a6e22e>err</span>)
+</span></span><span style=display:flex><span>	}
+</span></span><span style=display:flex><span>	<span style=color:#a6e22e>t</span>.<span style=color:#a6e22e>Log</span>(<span style=color:#e6db74>`version(&#34;(?im)bootstrap ([vV])?([0-9\\.]+)&#34;, response.title, 1)`</span>, <span style=color:#a6e22e>out</span>)
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div></article><script src=https://utteranc.es/client.js repo=Buzz2d0/zznq issue-term=pathname theme=github-light crossorigin=anonymous async></script></div></div><footer><article>Copyright © 2019-2022 by zznq</article></footer></main></body></html>

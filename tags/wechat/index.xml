@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>wechat on zznQ</title><link>https://zznq.imipy.com/tags/wechat/</link><description>Recent content in wechat on zznQ</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Thu, 15 Jul 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://zznq.imipy.com/tags/wechat/index.xml" rel="self" type="application/rss+xml"/><item><title>逆向获取 MacOS WeChat App 聊天数据库密钥小记</title><link>https://zznq.imipy.com/posts/wechat-sqlite-key/</link><pubDate>Thu, 15 Jul 2021 00:00:00 +0000</pubDate><guid>https://zznq.imipy.com/posts/wechat-sqlite-key/</guid><description>突然想解密下 WeChat 本地聊天数据库 ，这些 msg_*.db 文件一般存在 ~/Library/Containers/com.tencent.xinWeChat/Data/Library/Application\ Support/com.tencent.xinWeChat/2.*******/123812fsdhg1232333sd/Message/ 目录下
+google 发现一个教程：https://github.com/allen1881996/WeChat-Data-Analysis 测试后发现这个操作是可行的。大概步骤如下：通过 lldb 动态调试对 sqlite3_key 函数断点后再读取 $rsi 寄存器的值，进行简单拼接即得到了 sqlite3 raw-key。
+但是心中出现了两个疑问：
+为什么是 sqlite3_key? Tencent有个开源项目 wcdb 是基于SQLite的，加密使用的是开源的 SQLCipher sqlite3_key 函数就是设置加密数据库的。wcdb 将其封装在了 setCipherKey 方法下。
+memory read --size 1 --format x --count 32 $rsi 是啥意思？ x86-64 中函数调用时的参数存储如下寄存器中: %rdi, %rsi, %rdx, %rcx, %r8, %r9 六个寄存器用于存储函数调用时的6个参数（如果有6个或6个以上参数的话）。
+%rsi 寄存器存储的为第二个参数，即对应 int sqlite3_key(sqlite3 *db, const void *pKey, int nKey); 中 key 。
+如何能通过静态的方式获取到 key 呢？ 根据 WCDB 的线索继续摸索，找到在哪里执行 setCipherKey</description></item></channel></rss>

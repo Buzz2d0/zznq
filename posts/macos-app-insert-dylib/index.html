@@ -1,0 +1,158 @@
+<!doctype html><html lang=zh-cn><head><meta charset=utf-8><link rel="shortcut icon" href=/favicon.ico type=image/x-icon><meta name=viewport content="width=device-width,initial-scale=1"><title>MacOS App Insert dylib 小记 - zznQ</title><meta name=author content="zznq"><meta property="og:title" content="MacOS App Insert dylib 小记"><meta property="og:description" content="MacOS 下的 app 不是一个可执行文件而是一个 Application Bundle，而 Bundle 就是一个遵循特定结构的目录，包含 Info.plist、可执行文件、资源、Framworks 等内容，其中 Info.plist 和 Executable 是必要的。
+来看下 WeChat.app Bundle 的目录结构，先忽略 Framworks、Resources 等：
+WeChat.app ├── Contents │ └── MacOS │ └── WeChat │ └── Info.plist 了解关键文件信息 - 知彼知己 Info.plist 查看官网文档关于Info.plist 的介绍中，有一句很关键话：
+ The way an app provides its metadata to the system is through the use of a special file called an information property list file, or Info.plist for short.
+ 使用 plutil 查看 Info."><meta property="og:type" content="article"><meta property="og:url" content="https://zznq.imipy.com/posts/macos-app-insert-dylib/"><meta property="article:section" content="posts"><meta property="article:published_time" content="2021-05-12T00:00:00+00:00"><meta property="article:modified_time" content="2021-05-12T00:00:00+00:00"><meta name=twitter:card content="summary"><meta name=twitter:title content="MacOS App Insert dylib 小记"><meta name=twitter:description content="MacOS 下的 app 不是一个可执行文件而是一个 Application Bundle，而 Bundle 就是一个遵循特定结构的目录，包含 Info.plist、可执行文件、资源、Framworks 等内容，其中 Info.plist 和 Executable 是必要的。
+来看下 WeChat.app Bundle 的目录结构，先忽略 Framworks、Resources 等：
+WeChat.app ├── Contents │ └── MacOS │ └── WeChat │ └── Info.plist 了解关键文件信息 - 知彼知己 Info.plist 查看官网文档关于Info.plist 的介绍中，有一句很关键话：
+ The way an app provides its metadata to the system is through the use of a special file called an information property list file, or Info.plist for short.
+ 使用 plutil 查看 Info."><link rel=stylesheet href=/style.min.5297c96c59a52afaa5bcda4a6cedf3813081f64025c209b25b2ee6d0c8f74d462b625ad3404a92a14d7a51b4ec0a420337ae70f426fa4bce2d5f7459a3ca7274.css integrity="sha512-UpfJbFmlKvqlvNpKbO3zgTCB9kAlwgmyWy7m0Mj3TUYrYlrTQEqSoU16UbTsCkIDN65w9Cb6S84tX3RZo8pydA=="><script>localStorage.theme==="dark"||!("theme"in localStorage)&&window.matchMedia("(prefers-color-scheme: dark)").matches?document.documentElement.setAttribute("data-theme","dark"):document.documentElement.setAttribute("data-theme","light")</script><script defer src=/js/header.7a2a109ec3782c57bad0332b662f8a5f41765505936b69868eb8bd5241de9daf23c388e82ca1831f6d09935013dcb9f71bfa7face3975880c1076028b7b0a6e1.js integrity="sha512-eioQnsN4LFe60DMrZi+KX0F2VQWTa2mGjri9UkHena8jw4joLKGDH20Jk1AT3Ln3G/p/rOOXWIDBB2Aot7Cm4Q=="></script>
+<script defer src=/js/builtin-copy.56e07a74dd440b068ab36af35542ed8960865686c19fb809f38436877ac081570612cc8a913650b0c0e3073a336680c5df960e73bf7b1de83dc6aa996f2db858.js integrity="sha512-VuB6dN1ECwaKs2rzVULtiWCGVobBn7gJ84Q2h3rAgVcGEsyKkTZQsMDjBzozZoDF35YOc797Heg9xqqZby24WA=="></script>
+<script defer src=/js/search-zh-cn.677e05c714f837051483647d736c45051126c22a2696ca5f981b59da962d48962f3ea71150f559ba84884fd1aadf1c7aadce55bb31a3e5b75c0f173b763c109a.js integrity="sha512-Z34FxxT4NwUUg2R9c2xFBREmwiomlspfmBtZ2pYtSJYvPqcRUPVZuoSIT9Gq3xx6rc5VuzGj5bdcDxc7djwQmg=="></script></head><body><main><header><div class=brand><div id=sidebar_btn><svg id="menu_icon" width="26" height="26" viewBox="0 0 24 24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feather feather-menu"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></svg></div><div><a href=/>zznQ🎈</a></div></div><div class=toolbox><div id=theme_tool><svg id="dark_mode_btn" class="hidden toolbox-btn" width="18" height="18" viewBox="0 0 24 24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feather feather-sun"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></svg><svg id="light_mode_btn" class="hidden toolbox-btn" width="18" height="18" viewBox="0 0 24 24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-moon"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg></svg></div><div id=search_tool><svg id="search_btn" class="toolbox-btn" width="18" height="18" viewBox="0 0 24 24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></svg><div id=search_menu_wrapper class=hidden><div id=search_menu><div id=search_menu_toolbar><div id=search_menu_input_wrapper><input id=search_menu_input type=text placeholder="Search Posts"></div><div id=search_menu_close_btn><svg width="18" height="18" viewBox="0 0 24 24"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentcolor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-x"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></svg></div></div><div id=search_menu_results></div></div></div></div></div></header><nav id=navbar class=pure-menu><ul class=pure-menu-list><li class="navbar-item pure-menu-item insection"><a href=/posts/ class=pure-menu-link>文章</a></li><li class="navbar-item pure-menu-item"><a href=/categories/ class=pure-menu-link>分类</a></li><li class="navbar-item pure-menu-item"><a href=/tags/ class=pure-menu-link>标签</a></li></ul></nav><div id=sidebar_canvas_overlay class=hidden></div><div id=sidebar class=close><ul><li><a href=/posts/>文章</a></li><li><a href=/categories/>分类</a></li><li><a href=/tags/>标签</a></li></ul></div><div id=content class=content-margin><details class=collapsible-menu-wrapper><summary class=collapsible-menu-type><span>Table of contents</span></summary><div class=collapsible-menu><nav id=TableOfContents><ul><li><a href=#了解关键文件信息---知彼知己>了解关键文件信息 - 知彼知己</a><ul><li><a href=#infoplist>Info.plist</a></li><li><a href=#通用二进制文件>通用二进制文件</a></li><li><a href=#mach-o-文件>Mach-O 文件</a></li></ul></li><li><a href=#参考文章>参考文章</a></li></ul></nav></div></details><div class=content-margin><article class=line-numbers><p>MacOS 下的 app 不是一个可执行文件而是一个 Application Bundle，而 Bundle 就是一个遵循特定结构的目录，包含 Info.plist、可执行文件、资源、Framworks 等内容，其中 Info.plist 和 Executable 是必要的。</p><p>来看下 WeChat.app Bundle 的目录结构，先忽略 Framworks、Resources 等：</p><pre tabindex=0><code>WeChat.app
+├── Contents
+│   └── MacOS
+│        └── WeChat
+│   └── Info.plist
+</code></pre><h2 id=了解关键文件信息---知彼知己>了解关键文件信息 - 知彼知己</h2><h3 id=infoplist>Info.plist</h3><p>查看官网文档<a href=https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Introduction/Introduction.html>关于Info.plist 的介绍</a>中，有一句很关键话：</p><blockquote><p>The way an app provides its metadata to the system is through the use of a special file called an information property list file, or Info.plist for short.</p></blockquote><p>使用 plutil 查看 Info.plist 内容</p><p><code>$ plutil -p Info.plist</code></p><p>还可以将其转换为 <code>xml1 binary1 json swift objc</code></p><p><code>$ plutil -convert json Info.plist -o Info-plist.json</code></p><hr><p>** MacOS 支持三种可执行文件的格式**</p><ul><li>解释器脚本格式，这个就不用多说了，类似 ruby perl python 等。</li><li>Mach-O (Mach Object 的缩写)是 IOS/MacOS 下的原生可执行文件格式</li><li>通用二进制格式又称胖二进制格式（Fat Binary），是将多个 Mach-O 文件组合成一个多重架构的二进制文件。</li></ul><h3 id=通用二进制文件>通用二进制文件</h3><p>使用 file 命令查看信息：</p><pre tabindex=0><code>$ file WeChat
+MacOS/WeChat: Mach-O 64-bit executable x86_64
+</code></pre><p>这里仅支持 amd64，找个通用二进制格式的例子：</p><pre tabindex=0><code>$ file /usr/bin/python
+/usr/bin/python: Mach-O universal binary with 2 architectures: [x86_64:Mach-O 64-bit executable x86_64] [arm64e:Mach-O 64-bit executable arm64e]
+/usr/bin/python (for architecture x86_64):	Mach-O 64-bit executable x86_64
+/usr/bin/python (for architecture arm64e):	Mach-O 64-bit executable arm64
+</code></pre><p>系统提供了一个命令行工具 lipo 来操作通用二进制文件。它可以添加、提取、删除以及替换通用二进制文件中特定架构的二进制版本。
+直接瘦身为某种架构的版本：
+<code>$ lipo &lt;Mach-O> -thin &lt;架构名> -output &lt;路径></code>
+也可以合并多个架构：
+<code>$ lipo -create &lt;Mach-O1> &lt;Mach-O2> -output &lt;路径></code></p><p>通用二进制的“通用”不止针对可以直接运行的可执行程序，系统中的动态库dylib、静态库.a文件以及框架等都可以是通用二进制文件，对它们也可以同样使用lipo命令来进行管理。
+可以在<code>&lt;mach-o/fat.h></code>文件中找到通用二进制文件格式的声明(📣: BigSur 下的SDK迁移到：/Library/Developer/CommandLineTools/SDKs/ 目录下了 )</p><p>使用 <code>otool</code> 工具打印的 fat_header 信息：</p><pre tabindex=0><code>$ otool -f -V /usr/bin/python
+Fat headers
+fat_magic FAT_MAGIC
+nfat_arch 2
+architecture x86_64
+    cputype CPU_TYPE_X86_64
+    cpusubtype CPU_SUBTYPE_X86_64_ALL
+    capabilities 0x0
+    offset 16384
+    size 55984
+    align 2^14 (16384)
+architecture arm64e
+    cputype CPU_TYPE_ARM64
+    cpusubtype CPU_SUBTYPE_ARM64E
+    capabilities PTR_AUTH_VERSION USERSPACE 0
+    offset 81920
+    size 39344
+    align 2^14 (16384)
+</code></pre><p>在 fat_arch 结构体往下就是具体的Mach-O文件格式了。</p><h3 id=mach-o-文件>Mach-O 文件</h3><p>Mach-O文件由头(Header)、装载指令(Load commands)和数据(Data)组成。我们可以通过MachOView软件进行查看。其中，最重要的组成部分就是Data。</p><hr><p>这里简单了解下 Data:
+Data可以分为多个段(Segment), 每个段又可以分为多个节(Section)。</p><p>segment可以理解为一段连续的内存空间，拥有对应的读/写/执行权限。从逻辑角度来看，每个段内的节存储的数据都有类似的目的。如<code>__TEXT</code> 段内存储的有汇编源代码、字符串等，<code>__DATA</code> 段内存储非常量初始化变量等。从内存管理角度来看，每个段的大小被要求是页大小的倍数，也就是 4096B 的倍数。当程序加载时，就可以正好将一个段加载到一个页内。</p><p>每个segment由一个或者多个section组成，section表示特定含义数据或者代码的集合(不需要页对齐)。在macOS中，通常约定segment的名称为双下划线加全大写字母(如<code>__TEXT</code>)，section的名称为双下划线加小写字母(如<code>__text</code>)。</p><hr><p><img src=https://user-images.githubusercontent.com/26270009/117517506-c9481400-afce-11eb-87e5-477ffc5e7355.png alt=image></p><h4 id=header>header</h4><p>header 结构定义在 “mach-o/loader.h” 文件中，针对32位与64位架构的cpu，分别使用了<code>mach_header</code>与<code>mach_header_64</code>结构体来描述Mach-O头部。</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>struct</span> mach_header {
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>uint32_t</span>	magic;		<span style=color:#75715e>/* mach magic number identifier */</span>
+</span></span><span style=display:flex><span>	cpu_type_t	cputype;	<span style=color:#75715e>/* cpu specifier */</span>
+</span></span><span style=display:flex><span>	cpu_subtype_t	cpusubtype;	<span style=color:#75715e>/* machine specifier */</span>
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>uint32_t</span>	filetype;	<span style=color:#75715e>/* type of file */</span>
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>uint32_t</span>	ncmds;		<span style=color:#75715e>/* number of load commands */</span>
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>uint32_t</span>	sizeofcmds;	<span style=color:#75715e>/* the size of all the load commands */</span>
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>uint32_t</span>	flags;		<span style=color:#75715e>/* flags */</span>
+</span></span><span style=display:flex><span>};
+</span></span></code></pre></div><ul><li>filetype 字段表示 Mach-O的具体文件类型，我这里主要关注：MH_EXECUTE、MH_DYLIB 类型。</li><li>ncmds 指明了Mach-O文件中加载命令（load commands）的数量。</li></ul><p>使用 <code>$ otool -h -V</code> 查看 header 信息</p><pre tabindex=0><code>$ otool -h -V /usr/bin/python
+/usr/bin/python:
+Mach header
+      magic  cputype cpusubtype  caps    filetype ncmds sizeofcmds      flags
+MH_MAGIC_64   X86_64        ALL  0x00     EXECUTE    18       1472   NOUNDEFS DYLDLINK TWOLEVEL PIE
+</code></pre><h4 id=load-command>load command</h4><p>在mach_header之后的是Load Command加载命令，这些加载命令在Mach-O文件加载解析时，被内核加载器或者动态链接器调用，基本的加载命令的数据结构如下：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>struct</span> load_command {
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>uint32_t</span> cmd;		<span style=color:#75715e>/* type of load command  */</span>
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>uint32_t</span> cmdsize;	<span style=color:#75715e>/* total size of command in bytes */</span>
+</span></span><span style=display:flex><span>};
+</span></span></code></pre></div><ul><li>cmd 字段代表当前加载命令的类型</li><li>cmdsize 字段代表当前加载命令的大小</li></ul><p>加载命令类型的定义在 mach-o/loader.h 中，以 LC 为前缀的；所有的这些加载命令由系统内核加载器直接使用，或由动态链接器处理。其中几个常见的加载命令有<code>LC_SEGMENT</code>、<code>LC_LOAD_DYLINKER</code>、<code>LC_LOAD_DYLIB</code>、<code>LC_MAIN</code>、<code>LC_CODE_SIGNATURE</code>、<code>LC_ENCRYPTION_INFO</code> 等。</p><p>这里重点关注下 dylib 的加载，当cmd类型时 <code>LC_ID_DYLIB</code>、<code>LC_LOAD_DYLIB</code>、<code>LC_LOAD_WEAK_DYLIB</code>与<code>LC_REEXPORT_DYLIB</code> 时，统一使用 dylib_command 结构体表示：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-c data-lang=c><span style=display:flex><span><span style=color:#66d9ef>struct</span> dylib_command {
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>uint32_t</span>	cmd;		<span style=color:#75715e>/* LC_ID_DYLIB, LC_LOAD_{,WEAK_}DYLIB,
+</span></span></span><span style=display:flex><span><span style=color:#75715e>					   LC_REEXPORT_DYLIB */</span>
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>uint32_t</span>	cmdsize;	<span style=color:#75715e>/* includes pathname string */</span>
+</span></span><span style=display:flex><span>	<span style=color:#66d9ef>struct</span> dylib	dylib;		<span style=color:#75715e>/* the library identification */</span>
+</span></span><span style=display:flex><span>};
+</span></span><span style=display:flex><span><span style=color:#66d9ef>struct</span> dylib {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>union</span> lc_str  name;			<span style=color:#75715e>/* library&#39;s path name */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>uint32_t</span> timestamp;			<span style=color:#75715e>/* library&#39;s build time stamp */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>uint32_t</span> current_version;		<span style=color:#75715e>/* library&#39;s current version number */</span>
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>uint32_t</span> compatibility_version;	<span style=color:#75715e>/* library&#39;s compatibility vers number*/</span>
+</span></span><span style=display:flex><span>};
+</span></span></code></pre></div><p>看了这么多原理有些晕乎乎，写代码实操一下。</p><hr><p>用 Xcode 创建一个 &ldquo;InsertDemoApp&rdquo; command程序</p><p>mian.mm 文件内容:</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-objc data-lang=objc><span style=display:flex><span><span style=color:#75715e>#import &lt;Foundation/Foundation.h&gt;
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span><span style=color:#75715e>// Person
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span><span style=color:#66d9ef>@interface</span> <span style=color:#a6e22e>Person</span> : <span style=color:#a6e22e>NSObject</span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>@property</span> (<span style=color:#66d9ef>nonatomic</span>) NSString <span style=color:#f92672>*</span>name;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>@property</span> (<span style=color:#66d9ef>nonatomic</span>) NSNumber <span style=color:#f92672>*</span>age;
+</span></span><span style=display:flex><span>- (NSString <span style=color:#f92672>*</span>)<span style=color:#a6e22e>description</span>;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>@end</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>@implementation</span> <span style=color:#a6e22e>Person</span>
+</span></span><span style=display:flex><span>- (NSString <span style=color:#f92672>*</span>)<span style=color:#a6e22e>description</span>
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> [NSString stringWithFormat:<span style=color:#e6db74>@&#34;&lt;%@: %@&gt;&#34;</span>, self.name, self.age];
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span><span style=color:#66d9ef>@end</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>int</span> main(<span style=color:#66d9ef>int</span> argc, <span style=color:#66d9ef>const</span> <span style=color:#66d9ef>char</span> <span style=color:#f92672>*</span> argv[]) {
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>@autoreleasepool</span> {
+</span></span><span style=display:flex><span>        NSLog(<span style=color:#e6db74>@&#34;Hello, World!&#34;</span>);
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>        Person <span style=color:#f92672>*</span>p <span style=color:#f92672>=</span> [[Person alloc] init];
+</span></span><span style=display:flex><span>        [p setName:<span style=color:#e6db74>@&#34;zznq&#34;</span>];
+</span></span><span style=display:flex><span>        [p setAge:<span style=color:#ae81ff>@10</span>];
+</span></span><span style=display:flex><span>        
+</span></span><span style=display:flex><span>        NSLog(<span style=color:#e6db74>@&#34;person: %@&#34;</span>, p);
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> <span style=color:#ae81ff>0</span>;
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>再用 Xcode 创建一个 &ldquo;InsertLibTest&rdquo; dylib程序
+main.mm 文件内容：</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-objc data-lang=objc><span style=display:flex><span><span style=color:#75715e>#import &lt;Foundation/Foundation.h&gt;
+</span></span></span><span style=display:flex><span><span style=color:#75715e>#import &lt;objc/runtime.h&gt;
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>@interface</span> <span style=color:#a6e22e>NSObject</span> (Person)
+</span></span><span style=display:flex><span>+ (<span style=color:#66d9ef>void</span>) <span style=color:#a6e22e>hookPerson</span>;
+</span></span><span style=display:flex><span><span style=color:#66d9ef>@end</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>@implementation</span> <span style=color:#a6e22e>NSObject</span> (Person)
+</span></span><span style=display:flex><span><span style=color:#75715e>// hook person description
+</span></span></span><span style=display:flex><span><span style=color:#75715e></span>- (NSString <span style=color:#f92672>*</span>) <span style=color:#a6e22e>personDescription</span>
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    NSLog(<span style=color:#e6db74>@&#34;in personDescription&#34;</span>);
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>return</span> [self personDescription];
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span>+ (<span style=color:#66d9ef>void</span>) <span style=color:#a6e22e>hookPerson</span>
+</span></span><span style=display:flex><span>{
+</span></span><span style=display:flex><span>    NSLog(<span style=color:#e6db74>@&#34;in hookPerson&#34;</span>);
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    Method originalMethod <span style=color:#f92672>=</span> class_getInstanceMethod(objc_getClass(<span style=color:#e6db74>&#34;Person&#34;</span>), <span style=color:#66d9ef>@selector</span>(description));
+</span></span><span style=display:flex><span>    Method swizzledMethod <span style=color:#f92672>=</span> class_getInstanceMethod([self <span style=color:#66d9ef>class</span>], <span style=color:#66d9ef>@selector</span>(personDescription));
+</span></span><span style=display:flex><span>    <span style=color:#66d9ef>if</span> (originalMethod <span style=color:#f92672>&amp;&amp;</span> swizzledMethod){
+</span></span><span style=display:flex><span>       method_exchangeImplementations(originalMethod, swizzledMethod);
+</span></span><span style=display:flex><span>    }
+</span></span><span style=display:flex><span>}
+</span></span><span style=display:flex><span><span style=color:#66d9ef>@end</span>
+</span></span><span style=display:flex><span>
+</span></span><span style=display:flex><span><span style=color:#66d9ef>static</span> <span style=color:#66d9ef>void</span> __attribute__((constructor)) initialize(<span style=color:#66d9ef>void</span>) {
+</span></span><span style=display:flex><span>    NSLog(<span style=color:#e6db74>@&#34;hook common inject success!&#34;</span>);
+</span></span><span style=display:flex><span>    
+</span></span><span style=display:flex><span>    [NSObject hookPerson];
+</span></span><span style=display:flex><span>}
+</span></span></code></pre></div><p>编译之后使用 <a href=https://github.com/Tyilo/insert_dylib>insert_dylib</a> 将 libInsertLibTest.dylib 注入到 InsertDemoApp</p><pre tabindex=0><code>$ insert_dylib libInsertLibTest.dylib InsertDemoApp
+$ ./InsertDemoApp_patched
+2021-05-09 17:47:02.123 InsertDemoApp_patched[28336:319241] hook common inject success!
+2021-05-09 17:47:02.123 InsertDemoApp_patched[28336:319241] in hookPerson
+2021-05-09 17:47:02.123 InsertDemoApp_patched[28336:319241] Hello, World!
+2021-05-09 17:47:02.123 InsertDemoApp_patched[28336:319241] in personDescription
+2021-05-09 17:47:02.123 InsertDemoApp_patched[28336:319241] in personDescription
+2021-05-09 17:47:02.123 InsertDemoApp_patched[28336:319241] person: &lt;zznq: 10&gt;
+</code></pre><p>已经成功加载了 libInsertLibTest.dylib 文件，hook 成功。</p><p><code>insert_dylib</code> 的原理就是利用 <code>load_command</code> 加载 dylib；用 <code>$ otool -l -V filename</code> 并用 diff 对比两个文件后不同处：</p><pre tabindex=0><code>...
+---
+&lt;       cmd LC_CODE_SIGNATURE
+&lt;   cmdsize 16
+&lt;   dataoff 52432
+&lt;  datasize 19168
+---
+&gt;           cmd LC_LOAD_DYLIB
+&gt;       cmdsize 48
+&gt;          name libInsertLibTest.dylib (offset 24)
+&gt;    time stamp 0 Thu Jan  1 08:00:00 1970
+&gt;       current version 0.0.0
+&gt; compatibility version 0.0.0
+</code></pre><p>很明显移除了代码签名加载命令 LC_CODE_SIGNATURE 换成了加载 libInsertLibTest.dylib 的命令。</p><hr><h2 id=参考文章>参考文章</h2><ul><li><a href=https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/AboutBundles/AboutBundles.html#//apple_ref/doc/uid/10000123i-CH100-SW1>About Bundles</a></li><li><a href=https://developer.apple.com/library/archive/documentation/CoreFoundation/Conceptual/CFBundles/BundleTypes/BundleTypes.html#//apple_ref/doc/uid/10000123i-CH101-SW1>Bundle Structures</a></li><li><a href=https://zhuanlan.zhihu.com/p/24858664>Mach-O文件格式 - 非虫</a></li><li><a href=https://evilpan.com/2020/09/06/macho-inside-out/>深入浅出MachO</a></li><li><a href=https://www.desgard.com/iOS-Source-Probe/C/mach-o/Mach-O%20%E6%96%87%E4%BB%B6%E6%A0%BC%E5%BC%8F%E6%8E%A2%E7%B4%A2.html>Mach-O 文件格式探索</a></li><li><a href=https://makezl.github.io/2016/06/27/dylib/>dylib浅析</a></li></ul></article><script src=https://utteranc.es/client.js repo=Buzz2d0/zznq issue-term=pathname theme=github-light crossorigin=anonymous async></script></div></div><footer><article>Copyright © 2019-2022 by zznq</article></footer></main></body></html>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>react on zznQ</title><link>https://zznq.imipy.com/tags/react/</link><description>Recent content in react on zznQ</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Wed, 24 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://zznq.imipy.com/tags/react/index.xml" rel="self" type="application/rss+xml"/><item><title>前端入门小记</title><link>https://zznq.imipy.com/posts/frontend-learning/</link><pubDate>Wed, 24 Jun 2020 00:00:00 +0000</pubDate><guid>https://zznq.imipy.com/posts/frontend-learning/</guid><description>虽然之前有用 React 编写了 Hyuga 的前端，但是都是靠的 google + github 解决的，认知很浅。
+前端基础 https://developer.mozilla.org/zh-CN/ 别说了就是多看文档
+HTML 块级元素 自占一行 内联元素的大小就是被包裹元素的大小 &amp;lt;head&amp;gt; 中的 &amp;lt;base target=&amp;quot;_blank&amp;quot; /&amp;gt; 定义所有的链接属性 CSS 基础 https://developer.mozilla.org/zh-CN/docs/Web/CSS/Reference#%E5%85%B3%E9%94%AE%E5%AD%97%E7%B4%A2%E5%BC%95
+载入 CSS 的几种方法 内联 inline Style 标签 独立文件 css 选择器 https://segmentfault.com/a/1190000013424772
+常用的选择器：
+元素选择器
+p{...} div{...} 等
+类选择器
+.class_name{...}
+ID 选择器 #id_name{...}
+属性选择器
+a[id=&amp;quot;xxx&amp;quot;]{...}
+伪元素选择器
+.content::after{...}
+伪类选择器</description></item></channel></rss>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>objective-c on zznQ</title><link>https://zznq.imipy.com/tags/objective-c/</link><description>Recent content in objective-c on zznQ</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Mon, 04 Apr 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://zznq.imipy.com/tags/objective-c/index.xml" rel="self" type="application/rss+xml"/><item><title>记录一次破解[macOS]Typora失败的经历</title><link>https://zznq.imipy.com/posts/failed-to-crack-typora/</link><pubDate>Mon, 04 Apr 2022 00:00:00 +0000</pubDate><guid>https://zznq.imipy.com/posts/failed-to-crack-typora/</guid><description>在破解Bartender4后没多久躁动地心又开始了这次就尝试破解macOS下的Typora，顺便记录一下。
+搜索相关文章看到成功破解 Win、Linux(Electron)的文章以及工具： https://blog.shi1011.cn/rev/1891 https://github.com/Mas0nShi/typoraCracker 文章中分析（win｜linux）addLicense 流程如下，macOS 上使用原生 webkit 开发，估计思路差不多：
+直接打开 Hopper 分析搜索 License 找到了 LicenseManager 类：
+看到一个关键字为 activate 的方法，签名如下：
+/* @class LicenseManager */ -(void)activate:(void *)arg2 with:(void *)arg3 force:(char)arg4 callback:(void *)arg5 { /* - arg2 -&amp;gt; email - arg3 -&amp;gt; license - arg4 -&amp;gt; force - arg5 -&amp;gt; callback */ 分析 LicenseManager.activate 其方法流程：
+但是我不知道传入的 callback 是什么，为了搞清楚整个流程，想使用 firda 来打印下activate传入的参数：
+$ frida-trace -i &amp;#34;activate*&amp;#34; Typora Attaching... [1] 4229 killed frida-trace -i &amp;#34;activate*&amp;#34; Typora 进程直接被杀掉了 emmm 算逑！继续静态分析吧。</description></item><item><title>cgo &amp; objc</title><link>https://zznq.imipy.com/posts/cgoobjc/</link><pubDate>Mon, 17 May 2021 00:00:00 +0000</pubDate><guid>https://zznq.imipy.com/posts/cgoobjc/</guid><description>我尝试用 golang 编写一些核心代码，再利用 cgo 的特性将其打包成 dylib 文件，以便于我在objc 中调用（因为我 objc 写的很烂）。
+先写个很简单的 cgo 程序 main.go ：
+package main //void HelloWorld(); import &amp;#34;C&amp;#34; import &amp;#34;fmt&amp;#34; //export HelloWorld func HelloWorld() { fmt.Println(&amp;#34;Hello World!!!&amp;#34;) } func main() {} 代码中有几个地方需要注意下：
+import &amp;quot;C&amp;quot; 语句则表示开启了CGO特性 //export HelloWorld CGO 指令将其导出为C语言函数 编译为dylib动态库： $ go build -buildmode=c-shared--ldflags=&amp;quot;-w -s&amp;quot; -o cgodemo.dylib cgoDemo/main.go
+查看下文件信息：
+$ file cgodemo.dylib cgodemo.dylib: Mach-O 64-bit dynamically linked shared library x86_64 $ otool -L cgodemo.</description></item><item><title>MacOS App Insert dylib 小记</title><link>https://zznq.imipy.com/posts/macos-app-insert-dylib/</link><pubDate>Wed, 12 May 2021 00:00:00 +0000</pubDate><guid>https://zznq.imipy.com/posts/macos-app-insert-dylib/</guid><description>MacOS 下的 app 不是一个可执行文件而是一个 Application Bundle，而 Bundle 就是一个遵循特定结构的目录，包含 Info.plist、可执行文件、资源、Framworks 等内容，其中 Info.plist 和 Executable 是必要的。
+来看下 WeChat.app Bundle 的目录结构，先忽略 Framworks、Resources 等：
+WeChat.app ├── Contents │ └── MacOS │ └── WeChat │ └── Info.plist 了解关键文件信息 - 知彼知己 Info.plist 查看官网文档关于Info.plist 的介绍中，有一句很关键话：
+The way an app provides its metadata to the system is through the use of a special file called an information property list file, or Info.plist for short.
+使用 plutil 查看 Info.</description></item></channel></rss>
